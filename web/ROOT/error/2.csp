@@ -1,0 +1,22 @@
+<%@ page Content-Type="text/html" %>
+<%@ page include="iostream" %>
+<%@ page include="string" %>
+<%@ using namespace="std" %>
+<HTML><HEAD>
+<%! 
+double getArea(double a,double b,double c){
+	if(a+b>c&&a+c>b&&c+b>a){
+		double p=(a+b+c)/2.0;
+		return Math.sqrt(p*(p-a)*(p-b)*(p-c));
+	}
+	else return -1;
+}
+%>
+</HEAD>
+<body>
+<%
+out<<"传过来的三条边为:"<<
+jspContext.setAttribute("result",getArea(Double.parseDouble(sideA),Double.parseDouble(sideB),Double.parseDouble(sideC)));
+%>
+</body>
+</html>

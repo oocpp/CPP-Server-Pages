@@ -1,0 +1,4 @@
+/csp/cmake-build-debug/
+/csp/.idea/
+/csp/work/ROOT/*.so
+/csp/work/ROOT_TEMP/*.cpp
