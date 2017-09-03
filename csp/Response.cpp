@@ -6,8 +6,9 @@
 #include<fstream>
 #include<iterator>
 #include <sys/socket.h>
+#include"TaskQueue.h"
 
-Response::Response()
+Response::Response(TaskQueue&tq):_queue(tq)
 {
 	response.emplace("Server", SERVER_NAME);
 }
@@ -54,21 +55,23 @@ bool Response::getFile(Request & request, HttpCode & httpCode)
 	return false;
 }
 
-bool Response::send(int so, HttpCode & httpCode)
+bool Response::send(Data&data,HttpCode & httpCode)
 {
 	std::string head = std::string("HTTP/1.1 ").append(httpCode.getCodeStr()).append("\r\n");
 	response.emplace("Content-Length", std::to_string(sendData.length()));
 
-	if (::send(so, head.data(), head.length(), 0) != -1) {
-		std::string str;
-		for (auto &i : response)
-			str.append(i.first).append(": ").append(i.second).append("\r\n");
-		str += "\r\n";
+	std::string str;
+	for (auto &i : response)
+		str.append(i.first).append(": ").append(i.second).append("\r\n");
+	str += "\r\n";
 
-		if (::send(so, str.data(), str.length(), 0) != -1 && ::send(so, sendData.data(), sendData.length(), 0) != -1)
-			return true;
-	}
-	return false;
+	std::string ss= head +str+sendData;
+
+	data.buf.assign(ss.begin(),ss.end());
+	_queue.addWriteTask(data);
+    dout<<"send";
+	_queue.notifyWrite();
+	return true;
 }
 
 void Response::setSendData(std::string && s)

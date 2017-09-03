@@ -6,9 +6,9 @@
 #include"Config.h"
 
 thread_local std::string Request::recvData;
-Request::Request()
+Request::Request(Data&data)
 {
-
+	recvData.assign(data.buf.begin(),data.buf.end());
 }
 
 std::string Request::getMethod() const
@@ -46,21 +46,6 @@ std::string Request::getArg(const std::string & s) const
 const std::string& Request::getFileType() const
 {
 	return fileType;
-}
-
-
-bool Request::recvive(int so)
-{
-	recvData.resize(1024);
-	recvData.shrink_to_fit();
-
-	std::string::size_type n = 0, sn = 0;
-	while ((n = recv(so, const_cast<char*>(recvData.data() + sn), recvData.size() - sn, 0)) != -1 && n == recvData.size() - sn) {
-		recvData.resize(recvData.size() * 3);
-		sn += n;
-	}
-	recvData.resize(sn + n);
-	return n != -1;
 }
 
 bool Request::analysis(HttpCode&httpCode)
@@ -109,7 +94,7 @@ bool Request::filter()
 
 bool Request::redirect(HttpCode & httpCode)
 {
-	if (fileType == "html" || fileType == "csp" || fileType == "cgi") {
+	if (true||fileType == "html" || fileType == "csp" || fileType == "cgi") {
 		if (httpCode.getCode() == 404)
 			url = "/error/404.html";
 		else if (httpCode.getCode() == 400)

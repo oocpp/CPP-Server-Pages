@@ -3,13 +3,10 @@
 #include<vector>
 #include<regex>
 #include<utility>
+#include"Data.h"
 
 class HttpCode;
 
-class Request_t {
-
-	
-};
 
 class Request {
 	std::vector<std::pair<std::smatch::value_type, std::smatch::value_type>>head;
@@ -19,15 +16,14 @@ class Request {
 	std::string fileType;
 	std::smatch::value_type method;
 public:
-	Request();
+	Request(Data&data);
 
 	std::string getMethod()const;
 	const std::string& getUrl()const;
 	std::string getHeader(const std::string&s)const;
 	std::string getArg(const std::string&s)const;
 	const std::string& getFileType()const;
-	
-	bool recvive(int so);
+
 	bool analysis(HttpCode & httpCode);
 	bool filter();
 	bool redirect(HttpCode & httpCode);

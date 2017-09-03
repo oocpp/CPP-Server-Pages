@@ -1,6 +1,8 @@
 #pragma once
 #include<map>
 #include<string>
+#include "TaskQueue.h"
+
 class Request;
 class HttpCode;
 
@@ -8,12 +10,13 @@ class Response
 {
 	std::map<std::string, std::string>response;
 	std::string sendData;
+	TaskQueue &_queue;
 public:
-	Response();
+	explicit Response(TaskQueue&tq);
 	~Response();
 
 	bool getFile(Request&request, HttpCode&httpCode);
-	bool send(int so, HttpCode&httpCode);
+	bool send(Data&data,HttpCode&httpCode);
 	void setSendData(std::string&&s);
 	void setHead(std::string&&name, std::string &&value);
 };
