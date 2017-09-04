@@ -1,7 +1,7 @@
 #pragma once
 
 
-#define PATH                  "../../"  /*相对于二进制文件存放位置的路径*/
+#define PATH                  "../../"  /*此文件相对于二进制文件的路径*/
 #define WEB_ROOT_PATH         PATH"web/ROOT/"
 
 #define WORK_TEMP_ROOT_PATH   PATH"work/ROOT_TEMP/"
