@@ -4,7 +4,7 @@
 #include"Request.h"
 #include"Response.h"
 #include"HttpCode.h"
-#include"Data.h"
+#include"Buffer.h"
 #include"TaskQueue.h"
 
 
@@ -12,7 +12,7 @@ void Session::handle()
 {
 	enum class Status { RECVIVE, ANALYSIS, FILTER, REDIRECT, GETFILE, SEND,CLOSE,EXIT};
 
-	std::queue<Data> queue = _queue.getHadleTaskQueue();
+	std::queue<Buffer> queue = _queue.getHadleTaskQueue();
 	if(queue.empty()){
         std::cout<<"wait handle"<<std::endl;
 		_queue.waitHandleQueue();
@@ -53,4 +53,5 @@ void Session::handle()
 
 		queue.pop();
 	}
+    _queue.notifyWrite();
 }

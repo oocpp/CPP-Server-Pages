@@ -6,7 +6,7 @@
 #include"Config.h"
 
 thread_local std::string Request::recvData;
-Request::Request(Data&data)
+Request::Request(Buffer&data)
 {
 	recvData.assign(data.buf.begin(),data.buf.end());
 }

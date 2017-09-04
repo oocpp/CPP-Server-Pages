@@ -15,7 +15,7 @@
 #include<algorithm>
 #include<chrono>
 #include"DebugPrint.h"
-#include"Data.h"
+#include"Buffer.h"
 
 class TaskQueue{
 public:
@@ -24,14 +24,14 @@ public:
         _read_queue.push(so);
     }
 
-    void addHandleTask(Data&data){
+    void addHandleTask(Buffer&data){
         std::lock_guard<std::mutex> l(_handle_mutex);
-        _handle_queue.push(data);
+        _handle_queue.push(std::move(data));
     }
 
-    void addWriteTask(Data&data){
+    void addWriteTask(Buffer&data){
         std::lock_guard<std::mutex> l(_write_mutex);
-        _write_queue.push(data);
+        _write_queue.push(std::move(data));
     }
 
     std::queue<int> getReadTaskQueue(){
@@ -43,8 +43,8 @@ public:
         return q;
     }
 
-    std::queue<Data> getHadleTaskQueue(){
-        std::queue<Data> q;
+    std::queue<Buffer> getHadleTaskQueue(){
+        std::queue<Buffer> q;
         {
             std::lock_guard<std::mutex> l(_handle_mutex);
             q.swap(_handle_queue);
@@ -52,8 +52,8 @@ public:
         return q;
     }
 
-    std::queue<Data> getWriteTaskQueue(){
-        std::queue<Data> q;
+    std::queue<Buffer> getWriteTaskQueue(){
+        std::queue<Buffer> q;
         {
             std::lock_guard<std::mutex> l(_write_mutex);
             q.swap(_write_queue);
@@ -88,11 +88,12 @@ public:
         _writeCond.notify_one();
     }
 
-    void exit(){
+    void notifyExit(){
 
-        _read_queue.push(-1);
-        _handle_queue.push(Data(-1));
-        _write_queue.push(Data(-1));;
+        Buffer d(-1);
+        addReadTask(-1);
+        addHandleTask(d);
+        addWriteTask(d);
 
         notifyRead();
         notifyHandle();
@@ -109,6 +110,6 @@ private:
     std::condition_variable _writeCond;
 
     std::queue<int> _read_queue;
-    std::queue<Data> _handle_queue;
-    std::queue<Data> _write_queue;
+    std::queue<Buffer> _handle_queue;
+    std::queue<Buffer> _write_queue;
 };

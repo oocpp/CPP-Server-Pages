@@ -16,7 +16,7 @@ public:
 	~Response();
 
 	bool getFile(Request&request, HttpCode&httpCode);
-	bool send(Data&data,HttpCode&httpCode);
+	bool send(Buffer&data,HttpCode&httpCode);
 	void setSendData(std::string&&s);
 	void setHead(std::string&&name, std::string &&value);
 };

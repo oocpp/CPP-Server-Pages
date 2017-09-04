@@ -9,7 +9,7 @@
 #include<algorithm>
 #include<regex>
 #include <sys/socket.h>
-#include"Data.h"
+#include"Buffer.h"
 #include"TaskQueue.h"
 
 
@@ -17,27 +17,27 @@ class WriteEpoll{
 private:
     union TypeCast{
         explicit TypeCast(void*ptr):ptr(ptr){}
-        explicit TypeCast(std::list<Data>::iterator iter):iter(iter){}
+        explicit TypeCast(std::list<Buffer>::iterator iter):iter(iter){}
         void *ptr;
-        std::list<Data>::iterator iter;
+        std::list<Buffer>::iterator iter;
     };
 
-    void deleteSocket(std::list<Data>::iterator iter){
+    void deleteSocket(std::list<Buffer>::iterator iter){
         _poll.eventDel(iter->sockfd);
         _data_list.erase(iter);
         dout<<"send finsh";
     }
 
-    bool WriteData(Data&data) {
-        int num = ::write(data.sockfd, data.buf.data(), data.buf.size());
+    bool WriteData(Buffer&data) {
+        int num = ::write(data.sockfd, data.writeBegin(), data.writableSize());
 
         if (0 < num) {
-            if(num == data.buf.size()) {
+            if(num == data.writableSize()) {
                 ::close(data.sockfd);
                 return true;
             }
             else{
-                data.buf.erase(data.buf.begin(),data.buf.begin()+num);
+                data.writedSize(num);
                 return false;
             }
 
@@ -51,13 +51,13 @@ private:
     }
 
 public:
-    WriteEpoll(TaskQueue&tq,int timeout=0):_queue(tq), _activeEvents(1024), _timeout(timeout),_poll("Write") {
+    WriteEpoll(TaskQueue&tq,int timeout=0):_queue(tq),_timeout(timeout),_poll("Write") {
 
     }
 
     void wait(){
 
-        _activeEvents.resize(1024);
+        _activeEvents.resize(_data_list.size());
         if(_poll.wait(0, _activeEvents)) {
             for (auto &event:_activeEvents) {
                 auto iter = TypeCast(event.data.ptr).iter;
@@ -66,7 +66,7 @@ public:
             }
         }
 
-        std::queue<Data> q = _queue.getWriteTaskQueue();
+        std::queue<Buffer> q = _queue.getWriteTaskQueue();
 
         if(_data_list.empty()&&q.empty()){
             std::cout<<"wait write"<<std::endl;
@@ -87,13 +87,13 @@ public:
         }
     }
 
-    void add(std::list<Data>::iterator iter){
+    void add(std::list<Buffer>::iterator iter){
         _poll.eventAdd(iter->sockfd,Epoll::WRITE, TypeCast(iter).ptr);
     }
 private:
     int _timeout;
     Epoll _poll;
     std::vector<epoll_event> _activeEvents;
-    std::list<Data>_data_list;
+    std::list<Buffer>_data_list;
     TaskQueue& _queue;
 };

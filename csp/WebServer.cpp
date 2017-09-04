@@ -12,7 +12,7 @@
 #include"ReadEpoll.h"
 #include "WriteEpoll.h"
 
-Web::Web() noexcept
+Web::Web()noexcept :_doing(true),_count(0)
 {
 	dout << "---class Web constructor";
 }
@@ -25,27 +25,37 @@ Web::~Web() noexcept
 void Web::startRead(){
     std::cout<<"init read"<<std::endl;
     ReadEpoll rpoll(_task_queue,1);
+
+    notifyInit();
+
     while(_doing) {
         rpoll.wait();
     }
+    notifyExit();
     std::cout<<"read"<<std::endl;
 }
 
 void Web::startWrite(){
     std::cout<<"init write"<<std::endl;
     WriteEpoll wpoll(_task_queue);
+
+    notifyInit();
     while(_doing){
         wpoll.wait();
     }
+    notifyExit();
     std::cout<<"W"<<std::endl;
 }
 
 void Web::startHandle(){
     std::cout<<"init handle"<<std::endl;
     Session session(_task_queue);
+
+    notifyInit();
     while(_doing){
         session.handle();
     }
+    notifyExit();
     std::cout<<"H"<<std::endl;
 }
 
@@ -54,6 +64,7 @@ void Web::startAccept() noexcept {
     InetAddress addr("127.0.0.1", 8888, AF_INET);
 
     if (!listener.bind(addr) || !listener.listen()) {
+        notifyInit();
         return;
     }
 
@@ -61,6 +72,8 @@ void Web::startAccept() noexcept {
 
     Epoll epoll("Listen");
     epoll.eventAdd(listener.fd(), Epoll::READ);
+
+    notifyInit();
 
     dout << "进入 web循环";
     while (_doing) {
@@ -106,30 +119,35 @@ void Web::startAccept() noexcept {
                 break;
         }
     }
+    notifyExit();
+    dout << "退出 accept循环";
 }
 
 void Web::start()noexcept {
-    _doing = true;
+    _th_read = std::thread(&Web::startRead, this);
+    _th_handle = std::thread(&Web::startHandle, this);
+    _th_write = std::thread(&Web::startWrite, this);
+    _th_accept = std::thread(&Web::startAccept, this);
 
-    _th_read=std::thread(&Web::startRead, this);
-    _th_handle=std::thread(&Web::startHandle, this);
-    _th_write=std::thread(&Web::startWrite, this);
-    _th_accept=std::thread(&Web::startAccept,this);
+    {
+        std::unique_lock<std::mutex> ul(_m);
+        _cnd.wait(ul, [this] { return _count == 4; });
+    }
 
-    std::cout<<"init finsh"<<std::endl;
+    std::cout << "init finsh" << std::endl;
     std::string str;
-    std::cin>>str;
+    std::cin >> str;
 
-
-        std::cout<<str<<std::endl;
-        stop();
-        std::cout<<str<<std::endl;
+    std::cout << str << std::endl;
+    stop();
+    std::cout << str << std::endl;
 
 }
 
 void Web::stop()noexcept {
     _doing = false;
-    _task_queue.exit();
+    _task_queue.notifyExit();
+
     _th_accept.join();
     _th_read.join();
     _th_handle.join();

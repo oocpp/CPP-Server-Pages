@@ -3,7 +3,7 @@
 #include<vector>
 #include<regex>
 #include<utility>
-#include"Data.h"
+#include"Buffer.h"
 
 class HttpCode;
 
@@ -16,7 +16,7 @@ class Request {
 	std::string fileType;
 	std::smatch::value_type method;
 public:
-	Request(Data&data);
+	Request(Buffer&data);
 
 	std::string getMethod()const;
 	const std::string& getUrl()const;

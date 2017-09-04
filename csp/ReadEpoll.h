@@ -10,7 +10,7 @@
 #include<algorithm>
 #include<regex>
 #include <sys/socket.h>
-#include"Data.h"
+#include"Buffer.h"
 #include"TaskQueue.h"
 
 
@@ -18,13 +18,13 @@ class ReadEpoll{
 private:
     union TypeCast{
         explicit TypeCast(void*ptr):ptr(ptr){
-            assert(sizeof(void*)>=sizeof(std::list<Data>::iterator));
+            assert(sizeof(void*)>=sizeof(std::list<Buffer>::iterator));
         }
-        explicit TypeCast(std::list<Data>::iterator iter):iter(iter){
-            assert(sizeof(void*)>=sizeof(std::list<Data>::iterator));
+        explicit TypeCast(std::list<Buffer>::iterator iter):iter(iter){
+            assert(sizeof(void*)>=sizeof(std::list<Buffer>::iterator));
         }
         void *ptr;
-        std::list<Data>::iterator iter;
+        std::list<Buffer>::iterator iter;
     };
 
     bool isReadComplete(std::vector<char>&buf){
@@ -45,24 +45,23 @@ private:
         return false;
     }
 
-    void deleteSocket(std::list<Data>::iterator iter){
+    void deleteSocket(std::list<Buffer>::iterator iter){
         _poll.eventDel(iter->sockfd);
         _data_list.erase(iter);
         dout<<"close read";
     }
 
-    bool readData(Data&data) {
+    bool readData(Buffer&data) {
         int num = ::recv(data.sockfd, data.writeBegin(), data.writableSize(), 0);
 
         if (0 < num) {
-            if (num == data.buf.size()) {
+            if (num == data.writableSize()) {
+                data.writedSize(num);
                 char buf[65535];
                 int num1 = ::recv(data.sockfd, buf, sizeof(buf), 0);
 
                 if (num1 > 0) {
-                    size_t len = data.buf.size();
-                    data.buf.resize(len + num1);
-                    memmove(data.buf.data() + len, buf, num1);
+                    data.append(buf,num1);
                 }
                 else if (num == 0 || errno != EINTR && errno != EAGAIN /*&&errno !=  EWOULDBLOCK*/) {
                     ::close(data.sockfd);
@@ -70,14 +69,16 @@ private:
                 }
             }
             else{
-                data.buf.resize(num);
+                data.writedSize(num);
             }
 
             if (isReadComplete(data.buf)) {
                 _queue.addHandleTask(data);
                 return true;
             }
-
+            else{
+                data.reserve();
+            }
         }
         else if (num == 0 || errno != EINTR && errno != EAGAIN /*&&errno !=  EWOULDBLOCK*/) {
             ::close(data.sockfd);
@@ -88,13 +89,11 @@ private:
     }
 
 public:
-    ReadEpoll(TaskQueue&tq,int timeout):_queue(tq), _activeEvents(1024), _timeout(timeout),_poll("Read") {
+    ReadEpoll(TaskQueue&tq,int timeout):_queue(tq), _timeout(timeout),_poll("Read") {
     }
 
-
     void wait(){
-
-        _activeEvents.resize(1024);
+        _activeEvents.resize(_data_list.size());
         if(_poll.wait(0, _activeEvents)) {
             for (auto &event:_activeEvents) {
                 auto iter = TypeCast(event.data.ptr).iter;
@@ -104,6 +103,7 @@ public:
             _queue.notifyHandle();
         }
 
+        dout<<_data_list.size();
         std::queue<int> q = _queue.getReadTaskQueue();
 
         if(_data_list.empty()&&q.empty()){
@@ -126,13 +126,13 @@ public:
         }
     }
 
-    void add(std::list<Data>::iterator iter){
+    void add(std::list<Buffer>::iterator iter){
         _poll.eventAdd(iter->sockfd,Epoll::READ, TypeCast(iter).ptr);
     }
 private:
     int _timeout;
     Epoll _poll;
     std::vector<epoll_event> _activeEvents;
-    std::list<Data>_data_list;
+    std::list<Buffer>_data_list;
     TaskQueue& _queue;
 };

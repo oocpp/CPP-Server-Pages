@@ -55,7 +55,7 @@ bool Response::getFile(Request & request, HttpCode & httpCode)
 	return false;
 }
 
-bool Response::send(Data&data,HttpCode & httpCode)
+bool Response::send(Buffer&data,HttpCode & httpCode)
 {
 	std::string head = std::string("HTTP/1.1 ").append(httpCode.getCodeStr()).append("\r\n");
 	response.emplace("Content-Length", std::to_string(sendData.length()));
@@ -67,10 +67,10 @@ bool Response::send(Data&data,HttpCode & httpCode)
 
 	std::string ss= head +str+sendData;
 
-	data.buf.assign(ss.begin(),ss.end());
+	data.setSendData(ss);
 	_queue.addWriteTask(data);
     dout<<"send";
-	_queue.notifyWrite();
+	//_queue.notifyWrite();
 	return true;
 }
 
