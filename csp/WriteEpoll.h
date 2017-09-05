@@ -51,7 +51,7 @@ private:
     }
 
 public:
-    WriteEpoll(TaskQueue&tq,int timeout=0):_queue(tq),_timeout(timeout),_poll("Write") {
+    explicit WriteEpoll(TaskQueue&tq,int timeout=0):_queue(tq),_timeout(timeout),_poll("Write") {
 
     }
 

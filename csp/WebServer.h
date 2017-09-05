@@ -15,6 +15,8 @@ public:
     void stop()noexcept ;
 
 private:
+	void prepare();
+
     void startAccept()noexcept ;
 	void startRead();
 	void startWrite();

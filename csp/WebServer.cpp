@@ -123,7 +123,14 @@ void Web::startAccept() noexcept {
     dout << "退出 accept循环";
 }
 
+void Web::prepare(){
+
+}
+
 void Web::start()noexcept {
+
+    prepare();
+
     _th_read = std::thread(&Web::startRead, this);
     _th_handle = std::thread(&Web::startHandle, this);
     _th_write = std::thread(&Web::startWrite, this);
