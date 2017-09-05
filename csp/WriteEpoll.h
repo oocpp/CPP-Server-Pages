@@ -6,8 +6,7 @@
 #include"Epoll.h"
 #include<vector>
 #include<list>
-#include<algorithm>
-#include<regex>
+
 #include <sys/socket.h>
 #include"Buffer.h"
 #include"TaskQueue.h"
@@ -15,13 +14,6 @@
 
 class WriteEpoll{
 private:
-    union TypeCast{
-        explicit TypeCast(void*ptr):ptr(ptr){}
-        explicit TypeCast(std::list<Buffer>::iterator iter):iter(iter){}
-        void *ptr;
-        std::list<Buffer>::iterator iter;
-    };
-
     void deleteSocket(std::list<Buffer>::iterator iter){
         _poll.eventDel(iter->sockfd);
         _data_list.erase(iter);
@@ -60,7 +52,7 @@ public:
         _activeEvents.resize(_data_list.size());
         if(_poll.wait(0, _activeEvents)) {
             for (auto &event:_activeEvents) {
-                auto iter = TypeCast(event.data.ptr).iter;
+                auto iter = value_cast<std::list<Buffer>::iterator>(event.data.ptr);
                 if (WriteData(*iter))
                     deleteSocket(iter);
             }
@@ -88,7 +80,7 @@ public:
     }
 
     void add(std::list<Buffer>::iterator iter){
-        _poll.eventAdd(iter->sockfd,Epoll::WRITE, TypeCast(iter).ptr);
+        _poll.eventAdd(iter->sockfd,Epoll::WRITE, value_cast<void*>(iter));
     }
 private:
     int _timeout;

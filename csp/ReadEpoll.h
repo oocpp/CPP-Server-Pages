@@ -12,27 +12,16 @@
 #include <sys/socket.h>
 #include"Buffer.h"
 #include"TaskQueue.h"
+#include "util.h"
 
 
 class ReadEpoll{
 private:
-    union TypeCast{
-        explicit TypeCast(void*ptr):ptr(ptr){
-            assert(sizeof(void*)>=sizeof(std::list<Buffer>::iterator));
-        }
-        explicit TypeCast(std::list<Buffer>::iterator iter):iter(iter){
-            assert(sizeof(void*)>=sizeof(std::list<Buffer>::iterator));
-        }
-        void *ptr;
-        std::list<Buffer>::iterator iter;
-    };
 
-    bool isReadComplete(std::vector<char>&buf){
+    bool isReadComplete(const char*beg,const char*en){
         std::regex re_end("(?:Content-Length:([^\r]+))?[\\s\\S]*\r\n\r\n");
         std::cmatch m;
-        if(std::regex_search(static_cast<const char*>(buf.data()),
-                             static_cast<const char*>(buf.data()) +buf.size(),
-                             m,re_end)) {
+        if(std::regex_search(beg, en, m, re_end)) {
             if(m[1].matched) {
                 int len = 0;
                 for (auto p = m[1].first; p != m[1].second; ++p)
@@ -72,7 +61,7 @@ private:
                 data.writedSize(num);
             }
 
-            if (isReadComplete(data.buf)) {
+            if (isReadComplete(data.readBegin(),data.readEnd())) {
                 _queue.addHandleTask(data);
                 return true;
             }
@@ -96,7 +85,7 @@ public:
         _activeEvents.resize(_data_list.size());
         if(_poll.wait(0, _activeEvents)) {
             for (auto &event:_activeEvents) {
-                auto iter = TypeCast(event.data.ptr).iter;
+                auto iter = value_cast<std::list<Buffer>::iterator>(event.data.ptr);
                 if (readData(*iter))
                     deleteSocket(iter);
             }
@@ -127,7 +116,7 @@ public:
     }
 
     void add(std::list<Buffer>::iterator iter){
-        _poll.eventAdd(iter->sockfd,Epoll::READ, TypeCast(iter).ptr);
+        _poll.eventAdd(iter->sockfd,Epoll::READ, value_cast<void*>(iter));
     }
 private:
     int _timeout;

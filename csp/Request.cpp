@@ -8,7 +8,7 @@
 thread_local std::string Request::recvData;
 Request::Request(Buffer&data)
 {
-	recvData.assign(data.buf.begin(),data.buf.end());
+	recvData.assign(data.readBegin(),data.readEnd());
 }
 
 std::string Request::getMethod() const

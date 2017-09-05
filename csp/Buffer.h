@@ -33,13 +33,25 @@ public:
         buf.reserve(buf.size()*2);
     }
 
+    char*readBegin(){
+        return buf.data();
+    }
+
+    char*readEnd(){
+        return buf.data()+pos;
+    }
+
+    size_t readableSize(){
+        return pos;
+    }
+
     void setSendData(const std::string &str){
         pos=0;
         buf.assign(str.begin(),str.end());
     }
 
-//private:
     int sockfd;
+private:
     std::vector<char>buf;
     int pos;
 };
